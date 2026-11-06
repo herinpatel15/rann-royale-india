@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rann Royale – Preet-18</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1b1209">
+<style>
+  html,body{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;margin:0;height:100%;background:#1b1209;overflow:hidden;font-family:"Trebuchet MS",system-ui,sans-serif;color:#fff;user-select:none}
+  canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;display:none}
+  canvas#game{position:fixed;inset:0;width:100vw;height:100vh;cursor:crosshair;z-index:1}
+  #mini{position:fixed;right:14px;bottom:14px;width:170px;height:170px;border:3px solid #ff9933;border-radius:8px;background:#000a;pointer-events:none;display:none;z-index:2}
+  .overlay{z-index:5;position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 25%,#ff993388,#0a2a0acc 70%),#000c;text-align:center}
+  .overlay.hidden{display:none}
+  .card{width:min(620px,92vw);background:#1a120add;border-radius:14px;overflow:hidden;box-shadow:0 10px 60px #000a}
+  .flag{height:14px;background:linear-gradient(#ff9933 33%,#fff 33% 66%,#138808 66%)}
+  .card .in{padding:22px 28px 26px}
+  h1{margin:0;font-size:46px;letter-spacing:3px;color:#ffb347;text-shadow:0 3px 0 #7a3b00}
+  h2{margin:4px 0 14px;font-weight:600;font-size:18px;color:#e8f5e0}
+  .keys{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;text-align:left;font-size:14px;margin:14px 0 20px;color:#f1e6d0}
+  .keys b{color:#ffb347;display:inline-block;min-width:78px}
+  button{font:inherit;font-size:20px;font-weight:700;padding:12px 34px;border:0;border-radius:10px;cursor:pointer;
+    background:linear-gradient(#ff9f40,#e0701a);color:#fff;box-shadow:0 4px 0 #8a3f08}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #8a3f08}
+  small{display:block;margin-top:14px;color:#b9ad96;font-size:12px}
+  /* ---- touch / phone ---- */
+  .tc{display:none}
+  body.touch.playing .tc{display:block}
+  .tb{position:fixed;z-index:3;width:58px;height:58px;border-radius:50%;border:2px solid #fff9;background:#0007;color:#fff;font:700 12px 'Trebuchet MS',sans-serif;padding:0;box-shadow:none;touch-action:none}
+  .tb.on{background:#ff9933cc;transform:none;box-shadow:none}
+  .tb.big{width:92px;height:92px;font-size:20px;background:#d62828aa;border-color:#fff}
+  #tFire{right:max(34px,env(safe-area-inset-right));bottom:46px}
+  #tReload{right:140px;bottom:34px}
+  #tHeal{right:34px;bottom:152px}
+  #tPick{right:112px;bottom:112px}
+  #tSwap{display:none}
+  body.touch #mini{left:14px;right:auto;top:104px;bottom:auto;width:104px;height:104px}
+  .touchhelp{display:none;margin:10px 0 16px;color:#f1e6d0;font-size:14px;line-height:1.5}
+  body.touch .touchhelp{display:block}
+  body.touch .keys{display:none}
+  #rotate{display:none;position:fixed;inset:0;z-index:9;background:#1b1209;color:#ffe08a;align-items:center;justify-content:center;text-align:center;font:700 22px 'Trebuchet MS',sans-serif;padding:30px}
+  @media (orientation:portrait){body.touch #rotate{display:flex}}
+  @media (max-height:520px){.card .in{padding:12px 22px 14px}h1{font-size:30px}h2{font-size:14px;margin-bottom:6px}small{margin-top:8px}.overlay{overflow:auto}button{font-size:17px;padding:9px 22px}}
+  /* ---- online lobby ---- */
+  input,select{font:inherit;font-size:16px;padding:10px 12px;border-radius:8px;border:2px solid #7a5a2a;background:#2a1d10;color:#fff;outline:none}
+  input:focus,select:focus{border-color:#ff9933}
+  .row{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:10px 0}
+  .code{font-size:60px;letter-spacing:12px;font-weight:800;color:#ffb347;text-shadow:0 3px 0 #7a3b00;cursor:pointer;margin:2px 0 0 12px}
+  .plist{list-style:none;margin:10px auto;padding:0;max-width:360px;text-align:left}
+  .plist li{background:#0006;border-radius:8px;padding:8px 14px;margin:5px 0;font-weight:600}
+  .plist li b{color:#ffb347}
+  .msg{min-height:20px;color:#ff8a65;font-size:14px;margin:6px 0}
+  .hint{color:#b9ad96;font-size:13px;line-height:1.5}
+  button.alt{background:linear-gradient(#4a8a4a,#2c6a2c);box-shadow:0 4px 0 #17401a}
+  button.ghost{background:#0000;box-shadow:none;border:2px solid #7a5a2a;color:#e6d7b8;font-size:15px;padding:8px 18px}
+  button:disabled{opacity:.45;cursor:default}
+  #endTitle{font-size:40px;margin:0 0 6px}
+  #endStats{font-size:18px;margin:8px 0 20px;color:#f1e6d0}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="game"></canvas>
+<canvas id="mini" width="170" height="170"></canvas>
+
+<div class="tc">
+  <button id="tFire" class="tb big">FIRE</button>
+  <button id="tReload" class="tb">RELOAD</button>
+  <button id="tHeal" class="tb">HEAL</button>
+  <button id="tPick" class="tb">PICK</button>
+  <button id="tSwap" class="tb">SWAP</button>
+</div>
+<div id="rotate">📱 Please rotate your phone to landscape<br>to play Rann Royale</div>
+
+<div id="menu" class="overlay">
+  <div class="card"><div class="flag"></div><div class="in">
+    <h1>RANN ROYALE</h1>
+    <h2>You are <b style="color:#ffb347">Preet-18</b>. 30 players drop in. Only one walks out.</h2>
+    <div class="keys">
+      <div><b>W A S D</b> move</div><div><b>Mouse</b> look/aim &nbsp;·&nbsp; click = shoot</div>
+      <div><b>Shift</b> sprint</div><div><b>R</b> reload</div>
+      <div><b>E</b> pick up weapon</div><div><b>1 / 2 / Q</b> switch weapon</div>
+      <div><b>H</b> drink Haldi Doodh (heal)</div><div><b>Kavach</b> armour absorbs damage</div>
+    </div>
+    <div class="touchhelp"><b style="color:#ffb347">Left thumb</b>: move (push far = sprint) · <b style="color:#ffb347">Right thumb</b>: look / aim<br><b style="color:#ffb347">FIRE</b> shoots · <b style="color:#ffb347">PICK</b> grabs a weapon · tap a weapon slot to switch</div>
+    <div class="row" style="margin-top:0"><button id="onlineBtn" class="alt" style="width:100%;max-width:420px">🌐 Play with Friends (same Wi-Fi)</button></div>
+    <button id="start3dBtn">▶ Play 3D <span style="font-size:13px;opacity:.85">(recommended)</span></button>
+    <button id="startBtn" style="background:linear-gradient(#4a8a4a,#2c6a2c);box-shadow:0 4px 0 #17401a;margin-left:8px;font-size:16px">2D Mode</button>
+    <small>Stay inside the safe circle – the sandstorm (Toofan) closes in every few minutes.<br>
+    3D: click the game to lock the mouse · Esc to pause.<br>An original game inspired by the battle-royale genre.</small>
+  </div></div>
+</div>
+
+<div id="online" class="overlay hidden">
+  <div class="card"><div class="flag"></div><div class="in">
+    <h1 style="font-size:34px">PLAY WITH FRIENDS</h1>
+    <h2>Same Wi-Fi · one room · up to 12 players</h2>
+    <div class="row"><input id="onName" maxlength="14" placeholder="Your name" style="width:200px;text-align:center"></div>
+    <div class="row"><button id="onCreate">Create Room</button></div>
+    <div class="hint">— or join a friend's room —</div>
+    <div class="row"><input id="onCode" maxlength="4" placeholder="CODE" style="width:110px;text-align:center;text-transform:uppercase;letter-spacing:6px;font-weight:700"><button id="onJoin" class="alt">Join</button></div>
+    <div class="msg" id="onMsg"></div>
+    <button id="onBack" class="ghost">← Back</button>
+  </div></div>
+</div>
+
+<div id="lobby" class="overlay hidden">
+  <div class="card"><div class="flag"></div><div class="in">
+    <div class="hint">ROOM CODE <span style="opacity:.7">(tap to copy)</span></div>
+    <div class="code" id="lbRoom">----</div>
+    <div class="hint" id="lbUrl"></div>
+    <ul class="plist" id="lbList"></ul>
+    <div class="row">Graphics: <select id="lbGfx"><option value="3d">3D</option><option value="2d">2D</option></select></div>
+    <div class="row" id="lbHost" style="display:none">Bots: <select id="lbBots"><option value="0" selected>None – only real players</option><option value="5">5 bots</option><option value="10">10 bots</option><option value="20">20 bots</option></select><button id="lbStart">▶ Start Match</button></div>
+    <div class="hint" id="lbWait">Waiting for the host to start…</div>
+    <div class="msg" id="lbMsg"></div>
+    <button id="lbLeave" class="ghost">Leave room</button>
+  </div></div>
+</div>
+
+<div id="end" class="overlay hidden">
+  <div class="card"><div class="flag"></div><div class="in">
+    <h1 id="endTitle">Game Over</h1>
+    <div id="endStats"></div>
+    <button id="againBtn">Phir Se Khelo ▶</button>
+    <button id="leaveBtn" class="ghost" style="display:none;margin-left:8px">Leave</button>
+  </div></div>
+</div>
+
+<script src="render3d.bundle.js"></script>
+<script src="game.js"></script>
+<script src="net.js"></script>
+</body>
+</html>

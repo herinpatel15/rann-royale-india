@@ -1,0 +1,14 @@
+{
+  "name": "rann-royale",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Original Indian-themed battle royale (2D + 3D) for the browser",
+  "scripts": {
+    "build": "esbuild src3d/render3d.js --bundle --minify --format=iife --target=es2020 --outfile=render3d.bundle.js",
+    "start": "node server.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.187.0"
+  }
+}
